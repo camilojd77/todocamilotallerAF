@@ -17,7 +17,7 @@ namespace todocamilotallerAF.Functions.Functions
     public static class TimeApi
     {
 
-        //----------------------------CREATETIME----------------------------------------
+        //---------------------------- CREATE TIME ----------------------------------------
         [FunctionName(nameof(CreateTime))]
         public static async Task<IActionResult> CreateTime(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "time")] HttpRequest req,
@@ -75,7 +75,7 @@ namespace todocamilotallerAF.Functions.Functions
             });
         }
 
-        //----------------------------UPDATETIME----------------------------------------
+        //---------------------------- UPDATE TIME ----------------------------------------
         [FunctionName(nameof(UpdateTime))]
         public static async Task<IActionResult> UpdateTime(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "time/{id}")] HttpRequest req,
@@ -83,7 +83,7 @@ namespace todocamilotallerAF.Functions.Functions
         string id,
         ILogger log)
         {
-            log.LogInformation($"Update for employed: {id}, received.");
+            log.LogInformation($"Update for time: {id}, received.");
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             Time time = JsonConvert.DeserializeObject<Time>(requestBody);
@@ -132,7 +132,60 @@ namespace todocamilotallerAF.Functions.Functions
             TableOperation addOperation = TableOperation.Replace(timeEntity);
             await timeTable.ExecuteAsync(addOperation);
 
-            string message = $"Employed: {id}, updated in table.";
+            string message = $"Time: {id}, updated in table.";
+            log.LogInformation(message);
+
+            return new OkObjectResult(new Response
+            {
+                IsSuccess = true,
+                Message = message,
+                Result = timeEntity
+            });
+        }
+
+        //---------------------------- GET ALL TIMES ----------------------------------------
+        [FunctionName(nameof(GetAllTimes))]
+        public static async Task<IActionResult> GetAllTimes(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "time")] HttpRequest req,
+            [Table("time", Connection = "AzureWebJobsStorage")] CloudTable timeTable,
+            ILogger log)
+        {
+            log.LogInformation("Get all times received.");
+
+            TableQuery<TimeEntity> query = new TableQuery<TimeEntity>();
+            TableQuerySegment<TimeEntity> todos = await timeTable.ExecuteQuerySegmentedAsync(query, null);
+
+            string message = "Retrieved all times";
+            log.LogInformation(message);
+
+            return new OkObjectResult(new Response
+            {
+                IsSuccess = true,
+                Message = message,
+                Result = todos
+            });
+        }
+
+        //---------------------------- GET TIME BY ID ----------------------------------------
+        [FunctionName(nameof(GetTimeById))]
+        public static IActionResult GetTimeById(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "time/{id}")] HttpRequest req,
+            [Table("time", "TIME", "{id}", Connection = "AzureWebJobsStorage")] TimeEntity timeEntity,
+            string id,
+            ILogger log)
+        {
+            log.LogInformation($"Get time by id: {id} received.");
+
+            if (timeEntity == null)
+            {
+                return new BadRequestObjectResult(new Response
+                {
+                    IsSuccess = false,
+                    Message = "Time not found."
+                });
+            }
+
+            string message = $"Time: {timeEntity.RowKey}, retrieved.";
             log.LogInformation(message);
 
             return new OkObjectResult(new Response

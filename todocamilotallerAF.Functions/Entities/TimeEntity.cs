@@ -3,7 +3,7 @@ using System;
 
 namespace todocamilotallerAF.Functions.Entities
 {
-    internal class TimeEntity : TableEntity
+    public class TimeEntity : TableEntity
     {
         public int EmployedId { get; set; }
 
