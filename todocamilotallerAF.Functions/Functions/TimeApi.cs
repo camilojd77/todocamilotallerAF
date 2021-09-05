@@ -16,10 +16,12 @@ namespace todocamilotallerAF.Functions.Functions
 {
     public static class TimeApi
     {
+
+        //----------------------------CREATETIME----------------------------------------
         [FunctionName(nameof(CreateTime))]
         public static async Task<IActionResult> CreateTime(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "time")] HttpRequest req,
-            [Table("time", Connection = "AzureWebJobsStorage")] CloudTable todoTable,
+            [Table("time", Connection = "AzureWebJobsStorage")] CloudTable timeTable,
             ILogger log)
         {
             log.LogInformation("Recieved a new time.");
@@ -28,12 +30,23 @@ namespace todocamilotallerAF.Functions.Functions
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             Time time = JsonConvert.DeserializeObject<Time>(requestBody);
 
+            //Validate null data
             if (time?.EmployedId == null || time?.Date == null || time?.Type == null)
             {
                 return new BadRequestObjectResult(new Response
                 {
                     IsSuccess = false,
                     Message = "The request must have an EmployedID, a Date and a Type."
+                });
+            }
+
+            //Validate type. It should be 0 or 1.
+            if (time?.Type < 0 || time?.Type > 1)
+            {
+                return new BadRequestObjectResult(new Response
+                {
+                    IsSuccess = false,
+                    Message = "The Type must be 0 or 1."
                 });
             }
 
@@ -49,9 +62,77 @@ namespace todocamilotallerAF.Functions.Functions
             };
 
             TableOperation addOperation = TableOperation.Insert(timeEntity);
-            await todoTable.ExecuteAsync(addOperation);
+            await timeTable.ExecuteAsync(addOperation);
 
             string message = "New time stored in table";
+            log.LogInformation(message);
+
+            return new OkObjectResult(new Response
+            {
+                IsSuccess = true,
+                Message = message,
+                Result = timeEntity
+            });
+        }
+
+        //----------------------------UPDATETIME----------------------------------------
+        [FunctionName(nameof(UpdateTime))]
+        public static async Task<IActionResult> UpdateTime(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "time/{id}")] HttpRequest req,
+        [Table("time", Connection = "AzureWebJobsStorage")] CloudTable timeTable,
+        string id,
+        ILogger log)
+        {
+            log.LogInformation($"Update for employed: {id}, received.");
+
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            Time time = JsonConvert.DeserializeObject<Time>(requestBody);
+
+            //Validate time data
+            TableOperation findOperation = TableOperation.Retrieve<TimeEntity>("TIME", id);
+            TableResult findResult = await timeTable.ExecuteAsync(findOperation);
+            if (findResult.Result == null)
+            {
+                return new BadRequestObjectResult(new Response
+                {
+                    IsSuccess = false,
+                    Message = "Register was not not found."
+                });
+            }
+
+            //Update time data
+            TimeEntity timeEntity = (TimeEntity)findResult.Result;
+            if (time?.EmployedId != null && time?.Date != null && time?.Type != null)
+            {
+                if (time?.Type == 0 || time?.Type == 1)
+                {
+                    timeEntity.Date = (DateTime)time.Date;
+                    timeEntity.Type = (int)time.Type;
+                }
+                //If the type is not 0 or 1
+                else
+                {
+                    return new BadRequestObjectResult(new Response
+                    {
+                        IsSuccess = false,
+                        Message = "The Type must be 0 or 1."
+                    });
+                }
+            }
+            //If there is something null
+            else
+            {
+                return new BadRequestObjectResult(new Response
+                {
+                    IsSuccess = false,
+                    Message = "The request must have an EmployedID, a Date and a Type."
+                });
+            }
+
+            TableOperation addOperation = TableOperation.Replace(timeEntity);
+            await timeTable.ExecuteAsync(addOperation);
+
+            string message = $"Employed: {id}, updated in table.";
             log.LogInformation(message);
 
             return new OkObjectResult(new Response
