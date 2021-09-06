@@ -50,6 +50,16 @@ namespace todocamilotallerAF.Functions.Functions
                 });
             }
 
+            //Validate EmployedId. It should be higher than zero.
+            if (time?.EmployedId <= 0)
+            {
+                return new BadRequestObjectResult(new Response
+                {
+                    IsSuccess = false,
+                    Message = "The EmployedId must higher than zero."
+                });
+            }
+
             TimeEntity timeEntity = new TimeEntity
             {
                 EmployedId = (int)time.EmployedId,
@@ -227,5 +237,6 @@ namespace todocamilotallerAF.Functions.Functions
                 Result = timeEntity
             });
         }
+
     }
 }
