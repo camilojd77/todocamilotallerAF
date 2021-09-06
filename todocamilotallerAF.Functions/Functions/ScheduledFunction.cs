@@ -13,7 +13,7 @@ namespace todocamilotallerAF.Functions.Functions
     {
         [FunctionName("ScheduledFunction")]
         public static async Task Run(
-            [TimerTrigger("0 */60 * * * *")] TimerInfo myTimer,
+            [TimerTrigger("0 */1 * * * *")] TimerInfo myTimer,
             [Table("time", Connection = "AzureWebJobsStorage")] CloudTable timeTable,
             [Table("consolidated", Connection = "AzureWebJobsStorage")] CloudTable consolidatedTable,
             ILogger log)
